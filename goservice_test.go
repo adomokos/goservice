@@ -7,27 +7,18 @@ import (
 	"testing"
 )
 
-type ConvertsMessageToUpperCaseAction struct{}
-
-func (action ConvertsMessageToUpperCaseAction) Execute(ctx Context) Context {
+func convertsMessageToUpperCase(ctx Context) Context {
 	ctx.SetMessage(strings.ToUpper(ctx.Message()))
-
 	return ctx
 }
 
-type AddsACharacterAction struct{}
-
-func (action AddsACharacterAction) Execute(ctx Context) Context {
+func addsACharacter(ctx Context) Context {
 	ctx.SetMessage(fmt.Sprintf("%sa", ctx.Message()))
-
 	return ctx
 }
 
-type FailsAction struct{}
-
-func (action FailsAction) Execute(ctx Context) Context {
+func failsContext(ctx Context) Context {
 	ctx.SetFailure()
-
 	return ctx
 }
 
@@ -36,8 +27,8 @@ func Test_Action_Call(t *testing.T) {
 	context.SetMessage("message")
 
 	organizer := MakeOrganizer(
-		ConvertsMessageToUpperCaseAction{},
-		AddsACharacterAction{})
+		convertsMessageToUpperCase,
+		addsACharacter)
 
 	result := organizer.Call(context)
 
@@ -49,8 +40,8 @@ func Test_FailAction(t *testing.T) {
 	context.SetMessage("message")
 
 	organizer := MakeOrganizer(
-		FailsAction{},
-		AddsACharacterAction{})
+		failsContext,
+		addsACharacter)
 	result := organizer.Call(context)
 
 	assert.Equal(t, "message", result.Message())

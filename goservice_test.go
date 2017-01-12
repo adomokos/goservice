@@ -68,3 +68,17 @@ func Test_AddItemToContext(t *testing.T) {
 
 	assert.Equal(t, 2, result["number"].(int))
 }
+
+// Call it with:
+// $: go test -v -run="none" -benchtime="3s" -bench="BenchmarkOrganizer" -benchmem
+func BenchmarkOrganizer(b *testing.B) {
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		organizer := MakeOrganizer(
+			addsNumberToContext,
+			addsOneToNumber)
+		organizer.Call(MakeContext())
+
+	}
+}

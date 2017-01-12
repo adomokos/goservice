@@ -61,12 +61,10 @@ func Test_FailContext(t *testing.T) {
 }
 
 func Test_AddItemToContext(t *testing.T) {
-	context := MakeContext()
-
 	organizer := MakeOrganizer(
 		addsNumberToContext,
 		addsOneToNumber)
-	result := organizer.Call(context)
+	result := organizer.Call(MakeContext())
 
 	assert.Equal(t, 2, result["number"].(int))
 }

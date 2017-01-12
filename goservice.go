@@ -71,7 +71,3 @@ type ActionHandler func(ctx Context) Context
 func (f ActionHandler) Execute(ctx Context) Context {
 	return f(ctx)
 }
-
-type Action interface {
-	Execute(context Context) Context
-}

@@ -24,7 +24,6 @@ func (ctx Context) IsSuccess() bool {
 
 func (ctx Context) IsFailure() bool {
 	return ctx["__success"].(bool) == false
-	// return ctx.Success == false
 }
 
 func MakeContext() Context {

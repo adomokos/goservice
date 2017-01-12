@@ -22,7 +22,18 @@ func failsContext(ctx Context) Context {
 	return ctx
 }
 
-func Test_Action_Call(t *testing.T) {
+func addsNumberToContext(ctx Context) Context {
+	ctx["number"] = 1
+	return ctx
+}
+
+func addsOneToNumber(ctx Context) Context {
+	number := ctx["number"].(int)
+	ctx["number"] = number + 1
+	return ctx
+}
+
+func Test_AlteringMessage(t *testing.T) {
 	context := MakeContext()
 	context.SetMessage("message")
 
@@ -35,7 +46,7 @@ func Test_Action_Call(t *testing.T) {
 	assert.Equal(t, "MESSAGEa", result.Message())
 }
 
-func Test_FailAction(t *testing.T) {
+func Test_FailContext(t *testing.T) {
 	context := MakeContext()
 	context.SetMessage("message")
 
@@ -47,4 +58,15 @@ func Test_FailAction(t *testing.T) {
 	assert.Equal(t, "message", result.Message())
 	assert.False(t, result.IsSuccess())
 	assert.True(t, result.IsFailure())
+}
+
+func Test_AddItemToContext(t *testing.T) {
+	context := MakeContext()
+
+	organizer := MakeOrganizer(
+		addsNumberToContext,
+		addsOneToNumber)
+	result := organizer.Call(context)
+
+	assert.Equal(t, 2, result["number"].(int))
 }

@@ -3,6 +3,7 @@ package goservice
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"strings"
 	"testing"
 )
@@ -30,6 +31,15 @@ func addsNumberToContext(ctx Context) Context {
 func addsOneToNumber(ctx Context) Context {
 	number := ctx["number"].(int)
 	ctx["number"] = number + 1
+	return ctx
+}
+
+func handlesError(ctx Context) Context {
+	_, err := os.Open("nofile.txt")
+	if err != nil {
+		ctx.SetError(err)
+	}
+
 	return ctx
 }
 
@@ -69,6 +79,15 @@ func Test_AddItemToContext(t *testing.T) {
 	assert.Equal(t, 2, result["number"].(int))
 }
 
+func Test_CapturesError(t *testing.T) {
+	organizer := MakeOrganizer(
+		handlesError,
+		addsNumberToContext)
+	result := organizer.Call(MakeContext())
+
+	assert.False(t, result.IsSuccess())
+}
+
 // Call it with:
 // $: go test -v -run="none" -benchtime="3s" -bench="BenchmarkOrganizer" -benchmem
 func BenchmarkOrganizer(b *testing.B) {
@@ -79,6 +98,5 @@ func BenchmarkOrganizer(b *testing.B) {
 			addsNumberToContext,
 			addsOneToNumber)
 		organizer.Call(MakeContext())
-
 	}
 }

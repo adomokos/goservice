@@ -1,29 +1,44 @@
 package goservice
 
+const (
+	messageKey string = "__message"
+	successKey string = "__success"
+	errorKey   string = "__error"
+)
+
 type Context map[string]interface{}
 
 func (ctx Context) Message() string {
-	return ctx["__message"].(string)
+	return ctx[messageKey].(string)
 }
 
 func (ctx Context) SetMessage(msg string) {
-	ctx["__message"] = msg
+	ctx[messageKey] = msg
 }
 
 func (ctx Context) SetSuccess() {
-	ctx["__success"] = true
+	ctx[successKey] = true
 }
 
 func (ctx Context) SetFailure() {
-	ctx["__success"] = false
+	ctx[successKey] = false
 }
 
 func (ctx Context) IsSuccess() bool {
-	return ctx["__success"].(bool)
+	return ctx[successKey].(bool)
 }
 
 func (ctx Context) IsFailure() bool {
-	return ctx["__success"].(bool) == false
+	return ctx[successKey].(bool) == false
+}
+
+func (ctx Context) SetError(err error) {
+	ctx[errorKey] = err
+	ctx.SetFailure()
+}
+
+func (ctx Context) GetError() error {
+	return ctx[errorKey].(error)
 }
 
 func MakeContext() Context {

@@ -8,84 +8,82 @@ import (
 	"testing"
 )
 
-func convertsMessageToUpperCase(ctx Context) Context {
-	ctx.SetMessage(strings.ToUpper(ctx.Message()))
+func convertsMessageToUpperCase(ctx *Context) *Context {
+	ctx.Message = strings.ToUpper(ctx.Message)
 	return ctx
 }
 
-func addsACharacter(ctx Context) Context {
-	ctx.SetMessage(fmt.Sprintf("%sa", ctx.Message()))
+func addsACharacter(ctx *Context) *Context {
+	ctx.Message = fmt.Sprintf("%sa", ctx.Message)
 	return ctx
 }
 
-func failsContext(ctx Context) Context {
-	ctx.SetFailure()
+func failsContext(ctx *Context) *Context {
+	ctx.Fail("I don't like this")
 	return ctx
 }
 
-func addsNumberToContext(ctx Context) Context {
-	ctx["number"] = 1
+func addsNumberToContext(ctx *Context) *Context {
+	ctx.Set("number", 1)
 	return ctx
 }
 
-func addsOneToNumber(ctx Context) Context {
-	number := ctx["number"].(int)
-	ctx["number"] = number + 1
+func addsOneToNumber(ctx *Context) *Context {
+	number := ctx.Get("number").(int)
+	ctx.Set("number", number+1)
 	return ctx
 }
 
-func handlesError(ctx Context) Context {
+func handlesError(ctx *Context) *Context {
 	_, err := os.Open("nofile.txt")
 	if err != nil {
-		ctx.SetError(err)
+		ctx.Error = err
 	}
 
 	return ctx
 }
 
 func Test_AlteringMessage(t *testing.T) {
-	context := MakeContext()
-	context.SetMessage("message")
+	context := NewContext()
+	context.Message = "message"
 
-	organizer := MakeOrganizer(
+	organizer := NewOrganizer(
 		convertsMessageToUpperCase,
 		addsACharacter)
 
 	result := organizer.Call(context)
 
-	assert.Equal(t, "MESSAGEa", result.Message())
+	assert.Equal(t, "MESSAGEa", result.Message)
 }
 
 func Test_FailContext(t *testing.T) {
-	context := MakeContext()
-	context.SetMessage("message")
+	context := NewContext()
 
-	organizer := MakeOrganizer(
+	organizer := NewOrganizer(
 		failsContext,
 		addsACharacter)
 	result := organizer.Call(context)
 
-	assert.Equal(t, "message", result.Message())
-	assert.False(t, result.IsSuccess())
-	assert.True(t, result.IsFailure())
+	assert.False(t, result.Success)
+	assert.Equal(t, "I don't like this", context.Message)
 }
 
 func Test_AddItemToContext(t *testing.T) {
-	organizer := MakeOrganizer(
+	organizer := NewOrganizer(
 		addsNumberToContext,
 		addsOneToNumber)
-	result := organizer.Call(MakeContext())
+	result := organizer.Call(NewContext())
 
-	assert.Equal(t, 2, result["number"].(int))
+	assert.Equal(t, 2, result.Get("number").(int))
 }
 
 func Test_CapturesError(t *testing.T) {
-	organizer := MakeOrganizer(
+	organizer := NewOrganizer(
 		handlesError,
 		addsNumberToContext)
-	result := organizer.Call(MakeContext())
+	result := organizer.Call(NewContext())
 
-	assert.False(t, result.IsSuccess())
+	assert.NotNil(t, result.Error)
 }
 
 // Call it with:
@@ -94,9 +92,9 @@ func BenchmarkOrganizer(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		organizer := MakeOrganizer(
+		organizer := NewOrganizer(
 			addsNumberToContext,
 			addsOneToNumber)
-		organizer.Call(MakeContext())
+		organizer.Call(NewContext())
 	}
 }

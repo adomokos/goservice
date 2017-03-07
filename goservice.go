@@ -1,75 +1,88 @@
 package goservice
 
-const (
-	messageKey string = "__message"
-	successKey string = "__success"
-	errorKey   string = "__error"
+import (
+	"sync"
 )
 
-type Context map[string]interface{}
+var (
+	mutex sync.RWMutex
+)
 
-func (ctx Context) Message() string {
-	return ctx[messageKey].(string)
+type Context struct {
+	data    map[string]interface{}
+	Success bool
+	Message string
+	Error   error
 }
 
-func (ctx Context) SetMessage(msg string) {
-	ctx[messageKey] = msg
+func NewContext() *Context {
+	return &Context{
+		data:    make(map[string]interface{}),
+		Success: true,
+		Message: ""}
 }
 
-func (ctx Context) SetSuccess() {
-	ctx[successKey] = true
+func (ctx *Context) Set(key string, val interface{}) {
+	mutex.Lock()
+	ctx.data[key] = val
+	mutex.Unlock()
 }
 
-func (ctx Context) SetFailure() {
-	ctx[successKey] = false
+func (ctx *Context) Get(key string) interface{} {
+	mutex.RLock()
+	if val := ctx.data[key]; val != nil {
+		value := ctx.data[key]
+		mutex.RUnlock()
+		return value
+	}
+	mutex.RUnlock()
+	return nil
 }
 
-func (ctx Context) IsSuccess() bool {
-	return ctx[successKey].(bool)
+func (ctx *Context) Fail(message string) {
+	mutex.Lock()
+	ctx.Message = message
+	ctx.Success = false
+	mutex.Unlock()
 }
 
-func (ctx Context) IsFailure() bool {
-	return ctx[successKey].(bool) == false
+func (ctx *Context) Delete(key string) {
+	mutex.Lock()
+	if ctx.data[key] != nil {
+		delete(ctx.data, key)
+	}
+	mutex.Unlock()
 }
 
-func (ctx Context) SetError(err error) {
-	ctx[errorKey] = err
-	ctx.SetFailure()
-}
-
-func (ctx Context) GetError() error {
-	return ctx[errorKey].(error)
-}
-
-func MakeContext() Context {
-	ctx := Context{}
-	ctx.SetSuccess()
-	return ctx
+func (ctx *Context) Clear() {
+	mutex.Lock()
+	ctx.data = make(map[string]interface{})
+	mutex.Unlock()
 }
 
 type Organizer struct {
-	Actions []func(Context) Context
-	Ctx     Context
+	Actions []func(*Context) *Context
+	Ctx     *Context
 }
 
-func MakeOrganizer(actions ...func(Context) Context) Organizer {
+func NewOrganizer(actions ...func(*Context) *Context) Organizer {
 	organizer := Organizer{Actions: actions}
 	return organizer
 }
 
-func (organizer Organizer) Call(ctx Context) Context {
+func (organizer Organizer) Call(ctx *Context) *Context {
 	return organizer.With(ctx).Reduce(organizer.Actions)
 }
 
-func (organizer Organizer) With(ctx Context) Organizer {
+func (organizer Organizer) With(ctx *Context) Organizer {
 	organizer.Ctx = ctx
 	return organizer
 }
 
-func (organizer Organizer) Reduce(actions []func(Context) Context) Context {
+func (organizer Organizer) Reduce(actions []func(*Context) *Context) *Context {
 	ctx := organizer.Ctx
 	for _, action := range actions {
-		if ctx.IsSuccess() {
+		if ctx.Success {
 			ActionHandler(action).Execute(ctx)
 		}
 	}
@@ -80,8 +93,8 @@ func (organizer Organizer) Reduce(actions []func(Context) Context) Context {
 // ordinary functions as Action handlers. If f is a function
 // with the appropriate signature, ActionHandler(f) is a
 // Handler that calls f.
-type ActionHandler func(ctx Context) Context
+type ActionHandler func(ctx *Context) *Context
 
-func (f ActionHandler) Execute(ctx Context) Context {
+func (f ActionHandler) Execute(ctx *Context) *Context {
 	return f(ctx)
 }

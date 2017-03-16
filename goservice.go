@@ -61,17 +61,17 @@ func (ctx *Context) Clear() {
 }
 
 type Organizer struct {
-	Actions []func(*Context) *Context
+	Actions []func(*Context)
 	Ctx     *Context
 }
 
-func NewOrganizer(actions ...func(*Context) *Context) Organizer {
+func NewOrganizer(actions ...func(*Context)) Organizer {
 	organizer := Organizer{Actions: actions}
 	return organizer
 }
 
-func (organizer Organizer) Call(ctx *Context) *Context {
-	return organizer.With(ctx).Reduce(organizer.Actions)
+func (organizer Organizer) Call(ctx *Context) {
+	organizer.With(ctx).Reduce(organizer.Actions)
 }
 
 func (organizer Organizer) With(ctx *Context) Organizer {
@@ -79,22 +79,21 @@ func (organizer Organizer) With(ctx *Context) Organizer {
 	return organizer
 }
 
-func (organizer Organizer) Reduce(actions []func(*Context) *Context) *Context {
+func (organizer Organizer) Reduce(actions []func(*Context)) {
 	ctx := organizer.Ctx
 	for _, action := range actions {
 		if ctx.Success {
 			ActionHandler(action).Execute(ctx)
 		}
 	}
-	return ctx
 }
 
 // The ActionHandler type is an adapter to allow the use of
 // ordinary functions as Action handlers. If f is a function
 // with the appropriate signature, ActionHandler(f) is a
 // Handler that calls f.
-type ActionHandler func(ctx *Context) *Context
+type ActionHandler func(ctx *Context)
 
-func (f ActionHandler) Execute(ctx *Context) *Context {
-	return f(ctx)
+func (f ActionHandler) Execute(ctx *Context) {
+	f(ctx)
 }
